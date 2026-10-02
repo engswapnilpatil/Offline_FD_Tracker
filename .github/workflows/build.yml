@@ -1,0 +1,34 @@
+name: Build APK
+on:
+  push:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Prepare web files (offline copies of libraries)
+        run: |
+          mkdir -p www/lib
+          cp index.html www/index.html
+          curl -fL -o www/lib/react.js https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js
+          curl -fL -o www/lib/react-dom.js https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js
+          curl -fL -o www/lib/tailwind.js https://cdn.tailwindcss.com
+          sed -i 's#https://cdn.tailwindcss.com#lib/tailwind.js#; s#https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js#lib/react.js#; s#https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js#lib/react-dom.js#' www/index.html
+      - run: npm install
+      - run: npx cap add android && npx cap sync android
+      - run: cd android && chmod +x gradlew && ./gradlew assembleDebug
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.run_number }}
+          name: FD Tracker v${{ github.run_number }}
+          files: android/app/build/outputs/apk/debug/app-debug.apk
