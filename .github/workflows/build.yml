@@ -25,9 +25,27 @@ jobs:
           curl -fL -o www/lib/tailwind.js https://cdn.tailwindcss.com
           sed -i 's#https://cdn.tailwindcss.com#lib/tailwind.js#; s#https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js#lib/react.js#; s#https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js#lib/react-dom.js#' www/index.html
       - run: npm install
+      - name: Add offline OCR files
+        run: |
+          set +e
+          npm install --no-save tesseract.js@5 @tesseract.js-data/eng
+          mkdir -p www/lib/ocr/core www/lib/ocr/lang
+          cp node_modules/tesseract.js/dist/tesseract.min.js www/lib/ocr/
+          cp node_modules/tesseract.js/dist/worker.min.js www/lib/ocr/
+          cp node_modules/tesseract.js-core/tesseract-core* www/lib/ocr/core/
+          F=$(find node_modules/@tesseract.js-data/eng -name eng.traineddata.gz | sort | grep best_int | head -1)
+          [ -z "$F" ] && F=$(find node_modules/@tesseract.js-data/eng -name eng.traineddata.gz | head -1)
+          cp "$F" www/lib/ocr/lang/eng.traineddata.gz
+          ls -la www/lib/ocr www/lib/ocr/core www/lib/ocr/lang
+          exit 0
       - run: npx cap add android && npx cap sync android
       - name: Add notification permissions
-        run: sed -i 's#<application#<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>\n    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>\n    <application#' android/app/src/main/AndroidManifest.xml
+        run: sed -i 's#<application#<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>\n    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>\n    <uses-permission android:name="android.permission.CAMERA"/>\n    <uses-feature android:name="android.hardware.camera" android:required="false"/>\n    <application#' android/app/src/main/AndroidManifest.xml
+      - name: Generate app icon
+        run: |
+          sudo apt-get install -y fonts-dejavu-core > /dev/null
+          pip install pillow
+          python make_icons.py
       - run: cd android && chmod +x gradlew && ./gradlew assembleDebug
       - uses: softprops/action-gh-release@v2
         with:
