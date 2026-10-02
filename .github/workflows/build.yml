@@ -26,6 +26,8 @@ jobs:
           sed -i 's#https://cdn.tailwindcss.com#lib/tailwind.js#; s#https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js#lib/react.js#; s#https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js#lib/react-dom.js#' www/index.html
       - run: npm install
       - run: npx cap add android && npx cap sync android
+      - name: Add notification permissions
+        run: sed -i 's#<application#<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>\n    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>\n    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>\n    <application#' android/app/src/main/AndroidManifest.xml
       - run: cd android && chmod +x gradlew && ./gradlew assembleDebug
       - uses: softprops/action-gh-release@v2
         with:
