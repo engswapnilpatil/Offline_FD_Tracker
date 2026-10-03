@@ -24,6 +24,13 @@ jobs:
           curl -fL -o www/lib/react-dom.js https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js
           curl -fL -o www/lib/tailwind.js https://cdn.tailwindcss.com
           sed -i 's#https://cdn.tailwindcss.com#lib/tailwind.js#; s#https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js#lib/react.js#; s#https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js#lib/react-dom.js#' www/index.html
+      - name: Add Excel library
+        run: |
+          set +e
+          mkdir -p www/lib
+          curl -fL -o www/lib/xlsx.full.min.js https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js || curl -fL -o www/lib/xlsx.full.min.js https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js
+          ls -la www/lib/xlsx.full.min.js
+          exit 0
       - run: npm install
       - name: Add offline OCR files
         run: |
@@ -36,6 +43,11 @@ jobs:
           F=$(find node_modules/@tesseract.js-data/eng -name eng.traineddata.gz | sort | grep best_int | head -1)
           [ -z "$F" ] && F=$(find node_modules/@tesseract.js-data/eng -name eng.traineddata.gz | head -1)
           cp "$F" www/lib/ocr/lang/eng.traineddata.gz
+          if ! gzip -t www/lib/ocr/lang/eng.traineddata.gz 2>/dev/null; then
+            for U in https://tessdata.projectnaptha.com/4.0.0_best_int/eng.traineddata.gz https://cdn.jsdelivr.net/npm/@tesseract.js-data/eng@1.0.0/4.0.0_best_int/eng.traineddata.gz https://tessdata.projectnaptha.com/4.0.0/eng.traineddata.gz; do
+              curl -fL -o www/lib/ocr/lang/eng.traineddata.gz "$U" && gzip -t www/lib/ocr/lang/eng.traineddata.gz && break
+            done
+          fi
           ls -la www/lib/ocr www/lib/ocr/core www/lib/ocr/lang
           exit 0
       - run: npx cap add android && npx cap sync android
